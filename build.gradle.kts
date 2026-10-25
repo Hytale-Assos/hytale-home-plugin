@@ -41,6 +41,24 @@ repositories {
     mavenCentral()
 }
 
+dependencies {
+    testImplementation(platform("org.junit:junit-bom:5.11.4"))
+    testImplementation("org.junit.jupiter:junit-jupiter")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+}
+
+configurations.named("testImplementation") {
+    extendsFrom(configurations.getByName("vineServerJar"))
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+tasks.processResources {
+    exclude("homes.json", "homes_config.json", "homes_config.json.bak")
+}
+
 tasks.named<Jar>("jar") {
     archiveBaseName.set(project.property("mod_name").toString())
     archiveVersion.set(project.property("version").toString())

@@ -1,161 +1,116 @@
-# Hytale Plugin Template
+# Hytale Homes
 
-A ready-to-use starting point for creating Hytale server plugins with Java, _or Kotlin_. If you've
-been using the Asset Editor and want to start writing server-side logic — custom commands, event
-handling, gameplay systems — this is the simplest place to begin.
+Plugin de homes nommés pour serveur Hytale, développé par l'association étudiante
+**HytaleAssos**.
 
-This template uses the [Hytale Gradle Plugin](https://github.com/AzureDoom/Hytale-Gradle-Plugin),
-a Gradle plugin maintained by AzureDoom for Hytale mod/plugin development. It handles the repetitive
-project setup work for you, including manifest generation, validation, local server runs, IDE source
-setup, and optional hosted Hytale Javadoc injection.
+Les joueurs peuvent enregistrer plusieurs points de téléportation et s'y rendre
+avec `/home`, y compris vers un autre monde. Les homes sont conservés dans le
+dossier de données du plugin et survivent aux redémarrages.
 
-## How to start
+## Commandes
 
-1. Copy the template by downloading it or using the **Use this template** button.
-2. [Configure or install the Java SDK](https://hytalemodding.dev/en/docs/guides/plugin/setting-up-env)
-   to use Java 25. JetBrains Runtime is recommended for the best hot-reload/debugging experience.
-3. Open the project in your favorite IDE. We recommend
-   [IntelliJ IDEA](https://www.jetbrains.com/idea/download).
-4. Update the project values in `gradle.properties`:
-    - `rootProject.name` in `settings.gradle.kts`
-    - `group`
-    - `manifest_group`
-    - `mod_name`
-    - `mod_id`
-    - `main_class`
-    - `mod_author`
-    - `mod_description`
-    - `mod_url`
-5. Optionally run `./gradlew` if your IDE does not automatically sync the project.
-6. Prepare the Hytale development environment:
+| Commande | Description |
+|---|---|
+| `/sethome` | Crée ou remplace le home `home` à la position actuelle. |
+| `/sethome <nom>` | Crée ou remplace le home nommé. |
+| `/home` | Téléporte vers `home`, ou vers l'unique home du joueur si `home` n'existe pas. |
+| `/home <nom>` | Téléporte vers le home nommé. |
+| `/home <numéro>` | Téléporte vers le home correspondant à l'index affiché par `/homes`. |
+| `/homes` | Liste les homes numérotés avec leur monde et leurs coordonnées. |
+| `/delhome` | Supprime le home `home`. |
+| `/delhome <nom>` | Supprime le home nommé. |
+| `/delhome <numéro>` | Supprime le home correspondant à l'index affiché par `/homes`. |
 
-   ```bash
-   ./gradlew setupHytaleDev
-   ```
+Règles des noms :
 
-7. Run the local development server:
+- les noms sont convertis en minuscules et les espaces autour sont ignorés ;
+- caractères autorisés : lettres, chiffres, `_` et `-` ;
+- les noms purement numériques (`1`, `42`, `007`) sont refusés pour ne pas
+  entrer en conflit avec les index de `/homes` ;
+- longueur maximale configurable (24 par défaut).
 
-   ```bash
-   ./gradlew runServer
-   ```
+Le home par défaut est `home`. `/home` sans argument utilise `home` ; si ce home
+n'existe pas et que le joueur n'en a qu'un seul, il utilise celui-là.
 
-> On Windows, use `./gradlew.bat` or `gradlew.bat` instead of `./gradlew`. The Gradle wrapper is
-> included so you do not need to install Gradle separately; only Java is required.
-
-When the server starts, the output may prompt you to authorize your Hytale server. After that, you
-can begin developing your plugin while the server handles local development runs.
-
-From here, the [HytaleModding guides](https://hytalemodding.dev/en/docs/guides/plugin/build-and-test)
-cover more details.
-
-## Hytale Gradle Plugin
-
-This template is built around AzureDoom's `com.azuredoom.hytale-tools` Gradle plugin.
-
-The plugin is configured in `build.gradle.kts`:
-
-```kotlin
-plugins {
-    idea
-    java
-    id("com.azuredoom.hytale-tools") version "1.+"
-}
-```
-
-The AzureDoom Maven repository is configured in `settings.gradle.kts`:
-
-```kotlin
-pluginManagement {
-    repositories {
-        gradlePluginPortal()
-        mavenCentral()
-        maven {
-            name = "AzureDoom Maven"
-            url = uri("https://maven.azuredoom.com/mods")
-        }
-    }
-}
-```
-
-Most plugin-specific settings are controlled from `gradle.properties` and passed into the
-`hytaleTools` block in `build.gradle.kts`. This keeps common project metadata in one easy-to-edit
-place.
-
-For full plugin documentation, configuration options, tasks, and multi-project setup, visit the
-[Hytale Gradle Plugin repository](https://github.com/AzureDoom/Hytale-Gradle-Plugin).
-
-## Useful commands
-
-```bash
-# Sync/setup the local Hytale development environment
-./gradlew setupHytaleDev
-
-# Run the local Hytale server
-./gradlew runServer
-
-# Run the server with debugging and hot swap enabled
-./gradlew runServer -Ddebug=true -Dhotswap=true
-
-# Check your JVM and hot swap setup
-./gradlew hytaleJvmDoctor
-
-# Build the plugin
-./gradlew build
-
-# Refresh dependencies if something fails to resolve
-./gradlew build --refresh-dependencies
-```
-
-## Project structure
+Les commandes utilisent une syntaxe positionnelle, par exemple `/home spawn`,
+et non `--name=spawn`. `/homes` affiche une liste numérotée :
 
 ```text
-src/main/java/        Plugin source code
-src/main/resources/   Plugin resources, including manifest.json
-gradle.properties     Main template configuration
-build.gradle.kts      Gradle build and Hytale Gradle Plugin configuration
-settings.gradle.kts   Plugin repositories and project name
+Your homes (2/5):
+ 1. home (default) [default] (12.5, 64.0, -30.2)
+ 2. base [nether] (5.0, 70.0, 12.0)
+Use /home <number> or /home <name>.
 ```
 
-## Manifest configuration
+`/home 2` et `/delhome 2` fonctionnent donc aussi bien avec l'index qu'avec le
+nom. L'autocomplétion des noms de homes dans le client Hytale n'est pas
+disponible : le client ne demande pas de valeurs personnalisées au serveur.
 
-The generated `manifest.json` is driven by the values in `gradle.properties`, including:
+## Configuration
 
-- `manifest_group`
-- `mod_id`
-- `version`
-- `mod_description`
-- `mod_author`
-- `mod_url`
-- `main_class`
-- `manifest_dependencies`
-- `manifest_opt_dependencies`
-- `manifestServerVersion`
+Le fichier `homes_config.json` est créé au premier lancement dans le dossier de
+données du plugin.
 
-After changing these values, run:
+| Clé | Défaut | Description |
+|---|---|---|
+| `MaxHomes` | `5` | Nombre maximal de homes par joueur. |
+| `DefaultHomeName` | `home` | Nom utilisé quand aucun nom n'est fourni. |
+| `AllowCrossWorld` | `true` | Autorise les téléportations vers un autre monde. |
+| `MaxHomeNameLength` | `24` | Longueur maximale d'un nom de home. |
+
+## Données
+
+Les homes sont stockés dans `homes.json`, dans le dossier de données du plugin :
+
+```json
+{
+  "version": 1,
+  "players": {
+    "<uuid>": {
+      "home": {
+        "world": "default",
+        "x": 12.5,
+        "y": 64.0,
+        "z": -30.2,
+        "pitch": 0.0,
+        "yaw": 90.0,
+        "roll": 0.0,
+        "createdAt": 1760000000000
+      }
+    }
+  }
+}
+```
+
+L'écriture est atomique : le fichier est écrit dans un fichier temporaire puis
+renommé. En cas de JSON invalide au chargement, le plugin journalise l'erreur et
+démarre avec un stockage vide.
+
+## Téléportation
+
+La téléportation utilise le composant natif `Teleport` de Hytale. Elle fonctionne
+donc entre les mondes chargés. Si le monde cible n'est pas chargé, la commande
+affiche une erreur et ne déplace pas le joueur.
+
+Le plugin est indépendant de `/tp home` (commande native liée au point de
+respawn). `/sethome` ne modifie pas le point de respawn après une mort.
+
+## Construction et tests
 
 ```bash
-./gradlew updatePluginManifest
+./gradlew test     # tests unitaires JUnit 5
+./gradlew build    # build complet + validation du manifest
+./gradlew runServer
 ```
 
-## Troubleshooting
+Le jar est généré dans `build/libs/`.
 
-- **Gradle sync fails in IntelliJ** — Check that Java 25 is installed and configured under
-  **File → Project Structure → SDKs**.
-- **The Hytale Gradle Plugin does not resolve** — Make sure `settings.gradle.kts` includes the
-  AzureDoom Maven repository at `https://maven.azuredoom.com/mods`.
-- **Build fails with missing dependencies** — Run `./gradlew build --refresh-dependencies` and make
-  sure you have internet access.
-- **Permission denied on `./gradlew`** — Run `chmod +x gradlew` on macOS/Linux.
-- **Hot reload or enhanced class redefinition does not work** — Use JetBrains Runtime and try
-  `./gradlew hytaleJvmDoctor` to verify your JVM setup.
+Les tests unitaires couvrent `HomeService` et `HomeStorage`. L'intégration
+serveur (commandes et téléportation réelle) se vérifie manuellement avec
+`./gradlew runServer`.
 
-## Resources
+## Compatibilité
 
-- [Hytale Gradle Plugin](https://github.com/AzureDoom/Hytale-Gradle-Plugin)
-- [Hytale Modding Guides](https://hytalemodding.dev)
-- [Hytale Modding Discord](https://discord.gg/hytalemodding)
-
-## License
-
-Add your own license after copying the template. We recommend MIT, BSD, or Apache to keep the
-modding community open.
+- Java 25
+- Serveur Hytale `>=0.7.2 <0.8.0`
+- Plugin Gradle `com.azuredoom.hytale-tools`

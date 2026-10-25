@@ -23,12 +23,47 @@ public final class HomesConfig {
                     (config, value, info) -> config.maxHomeNameLength = value,
                     (config, info) -> config.maxHomeNameLength)
             .add()
+            .append(new KeyedCodec<>("RequirePermissions", Codec.BOOLEAN),
+                    (config, value, info) -> config.requirePermissions = value,
+                    (config, info) -> config.requirePermissions)
+            .add()
+            .append(new KeyedCodec<>("TeleportCooldownSeconds", Codec.INTEGER),
+                    (config, value, info) -> config.teleportCooldownSeconds = value,
+                    (config, info) -> config.teleportCooldownSeconds)
+            .add()
+            .append(new KeyedCodec<>("TeleportWarmupSeconds", Codec.INTEGER),
+                    (config, value, info) -> config.teleportWarmupSeconds = value,
+                    (config, info) -> config.teleportWarmupSeconds)
+            .add()
+            .append(new KeyedCodec<>("CombatTagEnabled", Codec.BOOLEAN),
+                    (config, value, info) -> config.combatTagEnabled = value,
+                    (config, info) -> config.combatTagEnabled)
+            .add()
+            .append(new KeyedCodec<>("CombatTagSeconds", Codec.INTEGER),
+                    (config, value, info) -> config.combatTagSeconds = value,
+                    (config, info) -> config.combatTagSeconds)
+            .add()
+            .append(new KeyedCodec<>("SafeLanding", Codec.BOOLEAN),
+                    (config, value, info) -> config.safeLanding = value,
+                    (config, info) -> config.safeLanding)
+            .add()
+            .append(new KeyedCodec<>("BlockedWorlds", Codec.STRING),
+                    (config, value, info) -> config.blockedWorlds = value,
+                    (config, info) -> config.blockedWorlds)
+            .add()
             .build();
 
     private int maxHomes = 5;
     private String defaultHomeName = "home";
     private boolean allowCrossWorld = true;
     private int maxHomeNameLength = 24;
+    private boolean requirePermissions;
+    private int teleportCooldownSeconds = 30;
+    private int teleportWarmupSeconds = 3;
+    private boolean combatTagEnabled;
+    private int combatTagSeconds = 10;
+    private boolean safeLanding = true;
+    private String blockedWorlds = "";
 
     private HomesConfig() {
     }
@@ -47,5 +82,33 @@ public final class HomesConfig {
 
     public int getMaxHomeNameLength() {
         return maxHomeNameLength;
+    }
+
+    public boolean isRequirePermissions() {
+        return requirePermissions;
+    }
+
+    public int getTeleportCooldownSeconds() {
+        return teleportCooldownSeconds;
+    }
+
+    public int getTeleportWarmupSeconds() {
+        return teleportWarmupSeconds;
+    }
+
+    public boolean isCombatTagEnabled() {
+        return combatTagEnabled;
+    }
+
+    public int getCombatTagSeconds() {
+        return combatTagSeconds;
+    }
+
+    public boolean isSafeLanding() {
+        return safeLanding;
+    }
+
+    public String getBlockedWorlds() {
+        return blockedWorlds;
     }
 }

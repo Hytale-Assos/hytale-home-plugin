@@ -56,7 +56,7 @@ tasks.test {
 }
 
 tasks.processResources {
-    exclude("homes.json", "homes_config.json", "homes_config.json.bak")
+    exclude("homes.json", "homes.json.bak", "homes_config.json", "homes_config.json.bak")
 }
 
 tasks.named<Jar>("jar") {

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
@@ -20,13 +21,20 @@ public final class HomeService {
     private final int maxHomes;
     private final int maxNameLength;
     private final boolean allowCrossWorld;
+    private final Set<String> blockedWorlds;
 
     public HomeService(HomeRepository repository, @Nullable String defaultHomeName, int maxHomes, int maxNameLength,
             boolean allowCrossWorld) {
+        this(repository, defaultHomeName, maxHomes, maxNameLength, allowCrossWorld, Set.of());
+    }
+
+    public HomeService(HomeRepository repository, @Nullable String defaultHomeName, int maxHomes, int maxNameLength,
+            boolean allowCrossWorld, @Nullable Set<String> blockedWorlds) {
         this.repository = Objects.requireNonNull(repository, "repository");
         this.maxHomes = Math.max(1, maxHomes);
         this.maxNameLength = Math.max(1, maxNameLength);
         this.allowCrossWorld = allowCrossWorld;
+        this.blockedWorlds = blockedWorlds == null ? Set.of() : Set.copyOf(blockedWorlds);
         this.defaultHomeName = sanitizeDefaultName(defaultHomeName);
     }
 
@@ -58,9 +66,19 @@ public final class HomeService {
         if (!exists && repository.count(playerId) >= maxHomes) {
             return new SetHomeResult(SetHomeStatus.LIMIT_REACHED, name);
         }
+        Home previous = repository.get(playerId, name);
         home.setName(name);
         repository.put(playerId, home);
-        repository.save();
+        try {
+            repository.save();
+        } catch (IOException exception) {
+            if (previous != null) {
+                repository.put(playerId, previous);
+            } else {
+                repository.remove(playerId, name);
+            }
+            throw exception;
+        }
         return new SetHomeResult(exists ? SetHomeStatus.UPDATED : SetHomeStatus.CREATED, name);
     }
 
@@ -108,10 +126,16 @@ public final class HomeService {
 
     public Optional<String> delete(UUID playerId, String rawName) throws IOException {
         String name = normalizeName(rawName);
-        if (!repository.remove(playerId, name)) {
+        Home removed = repository.get(playerId, name);
+        if (removed == null || !repository.remove(playerId, name)) {
             return Optional.empty();
         }
-        repository.save();
+        try {
+            repository.save();
+        } catch (IOException exception) {
+            repository.put(playerId, removed);
+            throw exception;
+        }
         return Optional.of(name);
     }
 
@@ -125,6 +149,10 @@ public final class HomeService {
 
     public boolean isCrossWorldAllowed() {
         return allowCrossWorld;
+    }
+
+    public boolean isWorldBlocked(@Nullable String worldName) {
+        return worldName != null && blockedWorlds.contains(worldName);
     }
 
     private String sanitizeDefaultName(@Nullable String rawName) {

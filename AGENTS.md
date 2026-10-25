@@ -40,8 +40,9 @@ réécrire. Tenir l'index `docs/decisions/README.md` à jour.
 - Suite unitaire : `./gradlew test` (JUnit 5).
 - Build complet : `./gradlew build`.
 - Les tests unitaires couvrent `HomeService` (normalisation, limites, résolution,
-  suppression) et `HomeStorage` (aller-retour JSON, fichier absent, JSON
-  invalide, sauvegarde atomique). Ils vivent dans `src/test/java`.
+  suppression, rollback, mondes bloqués), `HomeStorage` (aller-retour JSON,
+  fichier absent, JSON invalide, backup, version, sauvegarde atomique) et
+  `CooldownTracker`. Ils vivent dans `src/test/java`.
 - Les tests doivent être déterministes, hors ligne, et utiliser `@TempDir` pour
   tout accès fichier.
 - La téléportation et les commandes se vérifient manuellement avec

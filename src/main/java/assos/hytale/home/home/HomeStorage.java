@@ -20,10 +20,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public final class HomeStorage implements HomeRepository {
 
+    private static final Logger LOGGER = Logger.getLogger(HomeStorage.class.getName());
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    private static final int CURRENT_VERSION = 1;
 
     private final Path file;
     private final Map<UUID, Map<String, Home>> homes = new HashMap<>();
@@ -82,20 +86,27 @@ public final class HomeStorage implements HomeRepository {
         Map<UUID, Map<String, Home>> loaded = new HashMap<>();
         try (Reader reader = Files.newBufferedReader(file, StandardCharsets.UTF_8)) {
             StoredHomes stored = GSON.fromJson(reader, StoredHomes.class);
+            if (stored != null && stored.version > CURRENT_VERSION) {
+                throw new IOException("Unsupported homes data version " + stored.version);
+            }
             if (stored != null && stored.players != null) {
                 stored.players.forEach((rawId, rawHomes) -> {
                     UUID playerId;
                     try {
                         playerId = UUID.fromString(rawId);
                     } catch (IllegalArgumentException exception) {
+                        LOGGER.log(Level.WARNING, "Skipping homes for invalid player UUID '" + rawId + "'");
                         return;
                     }
                     Map<String, Home> playerHomes = new LinkedHashMap<>();
                     if (rawHomes != null) {
                         rawHomes.forEach((name, home) -> {
-                            if (home != null) {
+                            if (isValid(name, home)) {
                                 home.setName(name);
                                 playerHomes.put(name, home);
+                            } else {
+                                LOGGER.log(Level.WARNING,
+                                        "Skipping invalid home '" + name + "' for player " + playerId);
                             }
                         });
                     }
@@ -126,6 +137,16 @@ public final class HomeStorage implements HomeRepository {
         try (Writer writer = Files.newBufferedWriter(temporary, StandardCharsets.UTF_8)) {
             GSON.toJson(stored, writer);
         }
+
+        if (Files.exists(file)) {
+            Path backup = file.resolveSibling(file.getFileName() + ".bak");
+            try {
+                Files.copy(file, backup, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException exception) {
+                LOGGER.log(Level.WARNING, "Could not back up " + file, exception);
+            }
+        }
+
         try {
             Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
         } catch (AtomicMoveNotSupportedException exception) {
@@ -133,8 +154,22 @@ public final class HomeStorage implements HomeRepository {
         }
     }
 
+    private static boolean isValid(String name, Home home) {
+        return name != null
+                && !name.isBlank()
+                && home != null
+                && home.getWorld() != null
+                && !home.getWorld().isBlank()
+                && Double.isFinite(home.getX())
+                && Double.isFinite(home.getY())
+                && Double.isFinite(home.getZ())
+                && Float.isFinite(home.getPitch())
+                && Float.isFinite(home.getYaw())
+                && Float.isFinite(home.getRoll());
+    }
+
     private static final class StoredHomes {
-        private int version = 1;
+        private int version = CURRENT_VERSION;
         private Map<String, Map<String, Home>> players = new TreeMap<>();
     }
 }

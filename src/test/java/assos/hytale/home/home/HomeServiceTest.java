@@ -10,6 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -165,14 +166,34 @@ class HomeServiceTest {
     }
 
     @Test
-    void setHomePropagatesSaveFailure() {
+    void setHomeRollsBackANewHomeWhenSaveFails() {
         repository.setFailOnSave(true);
 
         assertThrows(IOException.class, () -> service.setHome(player, "cabin",
                 InMemoryHomeRepository.home("cabin")));
 
         assertEquals(1, repository.saveCallCount());
-        assertNotNull(repository.get(player, "cabin"));
+        assertNull(repository.get(player, "cabin"));
+        assertEquals(0, repository.count(player));
+    }
+
+    @Test
+    void setHomeRestoresThePreviousHomeWhenSaveFails() {
+        repository.put(player, InMemoryHomeRepository.home("base", "world", 1, 2, 3,
+                0f, 0f, 0f, 1L));
+        repository.setFailOnSave(true);
+
+        assertThrows(IOException.class, () -> service.setHome(player, "base",
+                InMemoryHomeRepository.home("base", "nether", 9, 8, 7, 0f, 0f, 0f, 5L)));
+
+        assertEquals(1, repository.saveCallCount());
+        Home restored = repository.get(player, "base");
+        assertNotNull(restored);
+        assertEquals("world", restored.getWorld());
+        assertEquals(1.0, restored.getX(), 1e-9);
+        assertEquals(3.0, restored.getZ(), 1e-9);
+        assertEquals(1L, restored.getCreatedAt());
+        assertEquals(1, repository.count(player));
     }
 
     // ---------------------------------------------------------------- resolve
@@ -413,7 +434,8 @@ class HomeServiceTest {
         assertThrows(IOException.class, () -> service.delete(player, "cabin"));
 
         assertEquals(1, repository.saveCallCount());
-        assertNull(repository.get(player, "cabin"));
+        assertNotNull(repository.get(player, "cabin"));
+        assertEquals(1, repository.count(player));
     }
 
     // ---------------------------------------------------------------- constructor
@@ -471,5 +493,35 @@ class HomeServiceTest {
         assertEquals(7, strict.getMaxHomes());
         assertFalse(strict.isCrossWorldAllowed());
         assertTrue(service.isCrossWorldAllowed());
+    }
+
+    @Test
+    void reportsABlockedWorld() {
+        HomeService guarded = new HomeService(repository, DEFAULT_HOME, MAX_HOMES, MAX_NAME_LENGTH,
+                true, Set.of("blocked_world"));
+
+        assertTrue(guarded.isWorldBlocked("blocked_world"));
+    }
+
+    @Test
+    void reportsANonBlockedWorld() {
+        HomeService guarded = new HomeService(repository, DEFAULT_HOME, MAX_HOMES, MAX_NAME_LENGTH,
+                true, Set.of("blocked_world"));
+
+        assertFalse(guarded.isWorldBlocked("world"));
+    }
+
+    @Test
+    void reportsNullWorldAsNotBlocked() {
+        HomeService guarded = new HomeService(repository, DEFAULT_HOME, MAX_HOMES, MAX_NAME_LENGTH,
+                true, Set.of("blocked_world"));
+
+        assertFalse(guarded.isWorldBlocked(null));
+    }
+
+    @Test
+    void hasNoBlockedWorldsWithTheFiveArgumentConstructor() {
+        assertFalse(service.isWorldBlocked("blocked_world"));
+        assertFalse(service.isWorldBlocked(null));
     }
 }

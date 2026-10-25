@@ -163,4 +163,89 @@ class HomeStorageTest {
         assertEquals(42L, kept.getCreatedAt());
         assertEquals(1, storage.count(player));
     }
+
+    @Test
+    void secondSaveKeepsThePreviousStateInABackup() throws Exception {
+        Path file = tempDir.resolve("homes.json");
+        UUID player = UUID.randomUUID();
+        HomeStorage storage = new HomeStorage(file);
+        storage.put(player, InMemoryHomeRepository.home("Cabin", "world", 1.0, 2.0, 3.0,
+                0.0f, 0.0f, 0.0f, 10L));
+        storage.save();
+        storage.put(player, InMemoryHomeRepository.home("Base", "overworld", 4.0, 5.0, 6.0,
+                0.0f, 0.0f, 0.0f, 20L));
+        storage.save();
+
+        Path backup = file.resolveSibling(file.getFileName() + ".bak");
+        assertTrue(Files.exists(backup), "expected a backup file at " + backup);
+
+        HomeStorage restored = new HomeStorage(backup);
+        restored.load();
+
+        assertEquals(1, restored.count(player));
+        assertNotNull(restored.get(player, "Cabin"));
+        assertNull(restored.get(player, "Base"));
+        assertEquals("world", restored.get(player, "Cabin").getWorld());
+    }
+
+    @Test
+    void loadRejectsAnUnsupportedVersion() throws Exception {
+        Path file = tempDir.resolve("homes.json");
+        Files.writeString(file, """
+                {
+                  "version": 2,
+                  "players": {}
+                }
+                """);
+        HomeStorage storage = new HomeStorage(file);
+
+        assertThrows(IOException.class, storage::load);
+    }
+
+    @Test
+    void loadSkipsAnInvalidHomeEntryAndKeepsValidOnes() throws Exception {
+        Path file = tempDir.resolve("homes.json");
+        UUID player = UUID.fromString("11111111-2222-3333-4444-555555555555");
+        Files.writeString(file, """
+                {
+                  "version": 1,
+                  "players": {
+                    "11111111-2222-3333-4444-555555555555": {
+                      "Cabin": {
+                        "name": "Cabin",
+                        "world": "world",
+                        "x": 1.5,
+                        "y": 64.0,
+                        "z": -2.5,
+                        "pitch": 0.0,
+                        "yaw": 90.0,
+                        "roll": 0.0,
+                        "createdAt": 1700000000000
+                      },
+                      "Broken": {
+                        "name": "Broken",
+                        "world": "   ",
+                        "x": 1.5,
+                        "y": 64.0,
+                        "z": -2.5,
+                        "pitch": 0.0,
+                        "yaw": 90.0,
+                        "roll": 0.0,
+                        "createdAt": 1700000000000
+                      }
+                    }
+                  }
+                }
+                """);
+        HomeStorage storage = new HomeStorage(file);
+
+        storage.load();
+
+        assertEquals(1, storage.count(player));
+        Home valid = storage.get(player, "Cabin");
+        assertNotNull(valid);
+        assertEquals("world", valid.getWorld());
+        assertEquals(1.5, valid.getX(), 1e-9);
+        assertNull(storage.get(player, "Broken"));
+    }
 }

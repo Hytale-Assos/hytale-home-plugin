@@ -3,6 +3,7 @@ package assos.hytale.home;
 import assos.hytale.home.commands.DelHomeCommand;
 import assos.hytale.home.commands.HomeCommand;
 import assos.hytale.home.commands.HomesCommand;
+import assos.hytale.home.commands.HomesUiCommand;
 import assos.hytale.home.commands.SetHomeCommand;
 import assos.hytale.home.config.HomesConfig;
 import assos.hytale.home.home.HomeService;
@@ -43,6 +44,7 @@ public final class HytaleHomePlugin extends JavaPlugin {
         getCommandRegistry().registerCommand(new SetHomeCommand(homeService));
         getCommandRegistry().registerCommand(new HomeCommand(homeService));
         getCommandRegistry().registerCommand(new HomesCommand(homeService));
+        getCommandRegistry().registerCommand(new HomesUiCommand(homeService));
         getCommandRegistry().registerCommand(new DelHomeCommand(homeService));
     }
 

@@ -4,6 +4,7 @@ import assos.hytale.home.home.Home;
 import assos.hytale.home.home.HomeService;
 import assos.hytale.home.home.HomeTeleportException;
 import assos.hytale.home.home.HomeTeleporter;
+import assos.hytale.home.ui.HomesPage;
 import com.hypixel.hytale.component.Ref;
 import com.hypixel.hytale.component.Store;
 import com.hypixel.hytale.logger.HytaleLogger;
@@ -12,12 +13,12 @@ import com.hypixel.hytale.server.core.command.system.CommandContext;
 import com.hypixel.hytale.server.core.command.system.arguments.system.RequiredArg;
 import com.hypixel.hytale.server.core.command.system.arguments.types.ArgTypes;
 import com.hypixel.hytale.server.core.command.system.basecommands.AbstractPlayerCommand;
+import com.hypixel.hytale.server.core.entity.entities.Player;
 import com.hypixel.hytale.server.core.universe.PlayerRef;
 import com.hypixel.hytale.server.core.universe.world.World;
 import com.hypixel.hytale.server.core.universe.world.storage.EntityStore;
 
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
@@ -29,7 +30,7 @@ public final class HomeCommand extends AbstractPlayerCommand {
     private final HomeService homeService;
 
     public HomeCommand(@Nonnull HomeService homeService) {
-        super("home", "Teleport to a home");
+        super("home", "Open the homes menu or teleport to a named home");
         requireNoPermission();
         this.homeService = homeService;
         addUsageVariant(new NamedHomeCommand(homeService));
@@ -38,12 +39,17 @@ public final class HomeCommand extends AbstractPlayerCommand {
     @Override
     protected void execute(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store,
             @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world) {
-        teleportHome(context, store, ref, playerRef, world, homeService, null);
+        Player player = store.getComponent(ref, Player.getComponentType());
+        if (player == null) {
+            context.sendMessage(Message.raw("Could not open the homes menu.").color("#FF5555"));
+            return;
+        }
+        player.getPageManager().openCustomPage(ref, store, new HomesPage(playerRef, homeService));
     }
 
     private static void teleportHome(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store,
             @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world,
-            @Nonnull HomeService homeService, @Nullable String requestedName) {
+            @Nonnull HomeService homeService, @Nonnull String requestedName) {
         Optional<Home> target;
         try {
             target = homeService.resolveSelector(playerRef.getUuid(), requestedName);
@@ -53,19 +59,11 @@ public final class HomeCommand extends AbstractPlayerCommand {
         }
 
         if (target.isEmpty()) {
-            if (requestedName != null) {
-                String label = isNumeric(requestedName)
-                        ? "Home number " + requestedName
-                        : "Home '" + requestedName + "'";
-                context.sendMessage(
-                        Message.raw(label + " not found. Use /homes to see the numbered list.").color("#FF5555"));
-            } else if (homeService.list(playerRef.getUuid()).isEmpty()) {
-                context.sendMessage(
-                        Message.raw("You have no homes. Use /sethome to create one.").color("#FF5555"));
-            } else {
-                context.sendMessage(Message.raw("Home '" + homeService.getDefaultHomeName()
-                        + "' not found. Use /homes to choose a home.").color("#FF5555"));
-            }
+            String label = isNumeric(requestedName)
+                    ? "Home number " + requestedName
+                    : "Home '" + requestedName + "'";
+            context.sendMessage(
+                    Message.raw(label + " not found. Use /homes to see the numbered list.").color("#FF5555"));
             return;
         }
 
@@ -87,8 +85,8 @@ public final class HomeCommand extends AbstractPlayerCommand {
         }
     }
 
-    private static boolean isNumeric(@Nullable String value) {
-        return value != null && value.trim().matches("\\d+");
+    private static boolean isNumeric(@Nonnull String value) {
+        return value.trim().matches("\\d+");
     }
 
     private static final class NamedHomeCommand extends AbstractPlayerCommand {

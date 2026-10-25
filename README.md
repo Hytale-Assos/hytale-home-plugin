@@ -13,7 +13,7 @@ dossier de données du plugin et survivent aux redémarrages.
 |---|---|
 | `/sethome` | Crée ou remplace le home `home` à la position actuelle. |
 | `/sethome <nom>` | Crée ou remplace le home nommé. |
-| `/home` | Téléporte vers `home`, ou vers l'unique home du joueur si `home` n'existe pas. |
+| `/home` | Ouvre l'interface listant les homes. |
 | `/home <nom>` | Téléporte vers le home nommé. |
 | `/home <numéro>` | Téléporte vers le home correspondant à l'index affiché par `/homes`. |
 | `/homes` | Liste les homes numérotés avec leur monde et leurs coordonnées. |
@@ -29,8 +29,9 @@ Règles des noms :
   entrer en conflit avec les index de `/homes` ;
 - longueur maximale configurable (24 par défaut).
 
-Le home par défaut est `home`. `/home` sans argument utilise `home` ; si ce home
-n'existe pas et que le joueur n'en a qu'un seul, il utilise celui-là.
+Le home par défaut est `home`. `/sethome` et `/delhome` sans argument utilisent
+ce nom. `/home` sans argument ouvre l'interface ; un clic sur un home téléporte
+et ferme la page.
 
 Les commandes utilisent une syntaxe positionnelle, par exemple `/home spawn`,
 et non `--name=spawn`. `/homes` affiche une liste numérotée :

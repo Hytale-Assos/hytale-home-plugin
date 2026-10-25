@@ -1,0 +1,7 @@
+content:
+  rules: .ai/rules
+
+packs:
+  - source: path
+    path: "~/.iapp/ibrain/packs/github.com/FortyTwo-Dev/ibrain-packs/global"
+    priority: 0

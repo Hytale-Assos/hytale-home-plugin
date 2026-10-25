@@ -1,5 +1,6 @@
 package assos.hytale.home.commands;
 
+import assos.hytale.home.HomePermissions;
 import assos.hytale.home.home.Home;
 import assos.hytale.home.home.HomeService;
 import assos.hytale.home.home.HomeService.SetHomeResult;
@@ -29,11 +30,11 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
 
     private final HomeService homeService;
 
-    public SetHomeCommand(@Nonnull HomeService homeService) {
+    public SetHomeCommand(@Nonnull HomeService homeService, boolean requirePermissions) {
         super("sethome", "Set a home at your current position");
-        requireNoPermission();
+        HomePermissions.apply(this, requirePermissions, HomePermissions.SETHOME);
         this.homeService = homeService;
-        addUsageVariant(new NamedSetHomeCommand(homeService));
+        addUsageVariant(new NamedSetHomeCommand(homeService, requirePermissions));
     }
 
     @Override
@@ -45,6 +46,11 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
     private static void setHome(@Nonnull CommandContext context, @Nonnull Store<EntityStore> store,
             @Nonnull Ref<EntityStore> ref, @Nonnull PlayerRef playerRef, @Nonnull World world,
             @Nonnull HomeService homeService, @Nonnull String rawName) {
+        if (homeService.isWorldBlocked(world.getName())) {
+            context.sendMessage(Message.raw("Homes are disabled in this world.").color("#FF5555"));
+            return;
+        }
+
         TransformComponent transform = store.getComponent(ref, TransformComponent.getComponentType());
         if (transform == null) {
             context.sendMessage(Message.raw("Your position is not available.").color("#FF5555"));
@@ -85,9 +91,9 @@ public final class SetHomeCommand extends AbstractPlayerCommand {
         private final HomeService homeService;
         private final RequiredArg<String> nameArg;
 
-        private NamedSetHomeCommand(@Nonnull HomeService homeService) {
+        private NamedSetHomeCommand(@Nonnull HomeService homeService, boolean requirePermissions) {
             super("Set a home at your current position with a custom name");
-            requireNoPermission();
+            HomePermissions.apply(this, requirePermissions, HomePermissions.SETHOME);
             this.homeService = homeService;
             this.nameArg = withRequiredArg("name", "Home name", ArgTypes.STRING);
             this.nameArg.suggest((sender, input, offset, result) -> HomeSuggestions.suggest(homeService, sender,

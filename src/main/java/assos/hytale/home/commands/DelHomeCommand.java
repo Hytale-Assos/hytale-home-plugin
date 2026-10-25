@@ -1,5 +1,6 @@
 package assos.hytale.home.commands;
 
+import assos.hytale.home.HomePermissions;
 import assos.hytale.home.home.Home;
 import assos.hytale.home.home.HomeService;
 import com.hypixel.hytale.component.Ref;
@@ -25,11 +26,11 @@ public final class DelHomeCommand extends AbstractPlayerCommand {
 
     private final HomeService homeService;
 
-    public DelHomeCommand(@Nonnull HomeService homeService) {
+    public DelHomeCommand(@Nonnull HomeService homeService, boolean requirePermissions) {
         super("delhome", "Delete a home");
-        requireNoPermission();
+        HomePermissions.apply(this, requirePermissions, HomePermissions.DELHOME);
         this.homeService = homeService;
-        addUsageVariant(new NamedDelHomeCommand(homeService));
+        addUsageVariant(new NamedDelHomeCommand(homeService, requirePermissions));
     }
 
     @Override
@@ -79,9 +80,9 @@ public final class DelHomeCommand extends AbstractPlayerCommand {
         private final HomeService homeService;
         private final RequiredArg<String> nameArg;
 
-        private NamedDelHomeCommand(@Nonnull HomeService homeService) {
+        private NamedDelHomeCommand(@Nonnull HomeService homeService, boolean requirePermissions) {
             super("Delete a named home");
-            requireNoPermission();
+            HomePermissions.apply(this, requirePermissions, HomePermissions.DELHOME);
             this.homeService = homeService;
             this.nameArg = withRequiredArg("name", "Home name", ArgTypes.STRING);
             this.nameArg.suggest((sender, input, offset, result) -> HomeSuggestions.suggest(homeService, sender,

@@ -1,5 +1,6 @@
 package assos.hytale.home.commands;
 
+import assos.hytale.home.HomePermissions;
 import assos.hytale.home.home.Home;
 import assos.hytale.home.home.HomeService;
 import com.hypixel.hytale.component.Ref;
@@ -19,9 +20,9 @@ public final class HomesCommand extends AbstractPlayerCommand {
 
     private final HomeService homeService;
 
-    public HomesCommand(@Nonnull HomeService homeService) {
+    public HomesCommand(@Nonnull HomeService homeService, boolean requirePermissions) {
         super("homes", "List your homes");
-        requireNoPermission();
+        HomePermissions.apply(this, requirePermissions, HomePermissions.HOMES);
         this.homeService = homeService;
     }
 
@@ -39,8 +40,8 @@ public final class HomesCommand extends AbstractPlayerCommand {
         for (int index = 0; index < homes.size(); index++) {
             Home home = homes.get(index);
             String defaultMarker = home.getName().equals(homeService.getDefaultHomeName()) ? " (default)" : "";
-            context.sendMessage(Message.raw(" " + (index + 1) + ". " + home.getName() + defaultMarker + " ["
-                    + home.getWorld() + "] (" + formatPosition(home) + ")").color("#AAAAAA"));
+            context.sendMessage(Message.raw(" " + (index + 1) + ". " + home.getName() + defaultMarker
+                    + " — world: " + home.getWorld() + " — " + formatPosition(home)).color("#AAAAAA"));
         }
         context.sendMessage(Message.raw("Use /home <number> or /home <name>.").color("#AAAAAA"));
     }

@@ -2,8 +2,7 @@ package assos.hytale.home.ui;
 
 import assos.hytale.home.home.Home;
 import assos.hytale.home.home.HomeService;
-import assos.hytale.home.home.HomeTeleportException;
-import assos.hytale.home.home.HomeTeleporter;
+import assos.hytale.home.home.HomeTeleportService;
 import com.hypixel.hytale.codec.Codec;
 import com.hypixel.hytale.codec.KeyedCodec;
 import com.hypixel.hytale.codec.builder.BuilderCodec;
@@ -35,11 +34,14 @@ public final class HomesPage extends InteractiveCustomUIPage<HomesPage.PageData>
 
     private final PlayerRef playerRef;
     private final HomeService homeService;
+    private final HomeTeleportService teleportService;
 
-    public HomesPage(@Nonnull PlayerRef playerRef, @Nonnull HomeService homeService) {
+    public HomesPage(@Nonnull PlayerRef playerRef, @Nonnull HomeService homeService,
+            @Nonnull HomeTeleportService teleportService) {
         super(playerRef, CustomPageLifetime.CanDismiss, PageData.CODEC);
         this.playerRef = playerRef;
         this.homeService = homeService;
+        this.teleportService = teleportService;
     }
 
     @Override
@@ -70,8 +72,10 @@ public final class HomesPage extends InteractiveCustomUIPage<HomesPage.PageData>
             String selector = "#HomeList[" + index + "]";
             builder.append("#HomeList", HOME_BUTTON_LAYOUT);
             builder.set(selector + ".Style", HOME_BUTTON_STYLE);
-            builder.set(selector + " #Name.Text", home.getName());
-            builder.set(selector + " #Distance.Text", home.getWorld() + " " + formatPosition(home));
+            String defaultMarker = home.getName().equals(homeService.getDefaultHomeName()) ? " (default)" : "";
+            builder.set(selector + " #Name.Text",
+                    home.getName() + defaultMarker + " - world: " + home.getWorld());
+            builder.set(selector + " #Distance.Text", formatPosition(home));
             eventBuilder.addEventBinding(CustomUIEventBindingType.Activating, selector,
                     EventData.of("Home", home.getName()), false);
         }
@@ -86,13 +90,7 @@ public final class HomesPage extends InteractiveCustomUIPage<HomesPage.PageData>
 
         Optional<Home> target = homeService.resolveSelector(playerRef.getUuid(), data.getHome());
         if (target.isPresent()) {
-            try {
-                HomeTeleporter.teleport(store, ref, target.get());
-                playerRef.sendMessage(
-                        Message.raw("Teleported to home '" + target.get().getName() + "'.").color("#55FF55"));
-            } catch (HomeTeleportException exception) {
-                playerRef.sendMessage(Message.raw(exception.getMessage()).color("#FF5555"));
-            }
+            teleportService.request(playerRef, store, ref, store.getExternalData().getWorld(), target.get());
         }
 
         Player player = store.getComponent(ref, Player.getComponentType());
